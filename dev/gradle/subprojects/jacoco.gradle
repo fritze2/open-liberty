@@ -13,7 +13,7 @@
  * Apply Jacoco plugin and configure 'jacoco', 'test', 'jacocoTestReport', and 'jacocoTestCoverageVerification' tasks.
  * See: https://docs.gradle.org/current/userguide/jacoco_plugin.html
  */
-plugins.apply 'jacoco'
+apply plugin: 'jacoco'
 
 /**
  * Define dependencies for the Jacoco Ant plugin that is used to
@@ -32,7 +32,7 @@ jacoco {
     toolVersion = "0.7.9"
 }
 
-test {
+tasks.named('test') {
     /**
      * By default, don't generate code coverage unless we are
      * running the 'jacocoTestReport' task.
@@ -50,17 +50,15 @@ test {
     }
 }
 
-jacocoTestReport {
+tasks.named('jacocoTestReport') {
     description = 'Run the test task and generate the code coverage report.'
-
     dependsOn test
-
     reports {
         html.enabled = true
     }
 }
 
-jacocoTestCoverageVerification {
+tasks.named('jacocoTestCoverageVerification') {
     violationRules {
         rule {
             limit {

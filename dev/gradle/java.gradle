@@ -16,11 +16,11 @@
 subprojects {
   apply plugin: 'java'
 
-  test {
+  tasks.named('test') {
     ignoreFailures = true
   }
   
-  tasks.withType(JavaCompile) {
+  tasks.withType(JavaCompile.class).configureEach {
     doFirst {
       // javac 12 has a min target of 1.7, so upgrade any 1.6 projects to 1.7 if running on Java 12
       if (JavaVersion.current().isJava12Compatible()) {
@@ -41,7 +41,7 @@ subprojects {
     }
   }
 
-  tasks.withType(Javadoc) {
+  tasks.withType(Javadoc.class).configureEach {
     doFirst {
       // Starting with JDK 9.0.4 the javadoc compiler started to striclty enforce proper HTML
       // syntax and other breaking changes.  Fixing all of these ocurrances would take far too
@@ -58,7 +58,7 @@ subprojects {
  * Generate a HTML test report of all unit test results.
  * See: https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.TestReport.html
  */
-task testReport(type: TestReport) {
+tasks.register('testReport', TestReport.class) {
   // Run after all `test` tasks, so no test results are missing
   mustRunAfter subprojects*.test
   destinationDir = cnf.file('generated/testReports/allUnitTests')
@@ -77,9 +77,11 @@ task testReport(type: TestReport) {
 }
 
 subprojects {
-  test.finalizedBy testReport
+  tasks.named('test') {
+    finalizedBy testReport
+  }
 }
 
-task testResults {
+tasks.register('testResults') {
   dependsOn subprojects.test
 }

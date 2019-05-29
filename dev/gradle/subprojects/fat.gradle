@@ -18,11 +18,11 @@ ext.autoFvtDir = new File(project.buildDir, 'autoFVT')
 // Local vars
 File publishDir = new File(autoFvtDir, 'publish')
 
-task cleanFat(type: Delete) {
+tasks.register('cleanFat', Delete.class) {
   delete autoFvtDir
 }
 
-task cleanBeforeRun(type: Delete) {
+tasks.register('cleanBeforeRun', Delete.class) {
   delete new File(autoFvtDir, 'output')
   delete new File(autoFvtDir, 'results')
 }
@@ -36,20 +36,20 @@ dependencies {
   derby 'org.apache.derby:derby:10.11.1.1'
 }
 
-task addRequiredLibraries(type: Copy) {
+tasks.register('addRequiredLibraries', Copy.class) {
   shouldRunAfter jar
   from configurations.requiredLibs
   into new File(autoFvtDir, 'lib')
 }
 
-task addDerby(type: Copy) {
+tasks.register('addDerby', Copy.class) {
   shouldRunAfter jar
   from configurations.derby
   into new File(autoFvtDir, 'publish/shared/resources/derby')
   rename 'derby-.*.jar', 'derby.jar'
 }
 
-task copyFeatureBundles {
+tasks.register('copyFeatureBundles') {
   shouldRunAfter assemble
   enabled project.file('test-bundles').exists()
   doLast {
@@ -64,7 +64,7 @@ task copyFeatureBundles {
   }
 }
 
-task autoFVT {
+tasks.register('autoFVT') {
   dependsOn jar
   dependsOn ':cnf:copyMavenLibs'
   dependsOn addRequiredLibraries
@@ -270,14 +270,14 @@ task autoFVT {
   }
 }
 
-task zipAutoFVT(type: Zip) {
+tasks.register('zipAutoFVT', Zip.class) {
   dependsOn autoFVT
   from autoFvtDir
   into 'autoFVT'
   archiveName 'autoFVT.zip'
 }
 
-task zipProjectFVT(type: Zip) {
+tasks.register('zipProjectFVT', Zip.class) {
   dependsOn zipAutoFVT
   baseName project.name
   into project.name + '/build/lib', {from "${distsDir}/autoFVT.zip"}
@@ -295,7 +295,7 @@ publishing {
   }
 }
 
-task runfat(type: Exec) {
+tasks.register('runfat', Exec.class) {
   dependsOn cleanBeforeRun
   shouldRunAfter build
   shouldRunAfter cleanBeforeRun
@@ -330,7 +330,7 @@ if(gradle.startParameter.getCurrentDir().getAbsolutePath().contains("_fat")) {
   }
 }
 
-assemble {
+tasks.named('assemble') {
   // Skip out on 'assemble' unless top-level gradle invocation contains "fat"
   if(!buildFatEnabled) {
     enabled = false;
@@ -401,7 +401,7 @@ def ebcClone(String url, String branch, String repoPath){
   // Non-local cloning is not implemented for now  
 }
 
-build {
+tasks.named('build') {
   // Skip out on 'build' unless top-level gradle invocation contains "fat"
   if(!buildFatEnabled) {
     enabled = false;
@@ -409,14 +409,15 @@ build {
   }
 }
 
-buildfat {
+tasks.named('buildfat') {
   dependsOn cleanFat
   dependsOn assemble
   dependsOn build
   dependsOn zipProjectFVT
 }
 
-task buildandrun {
+//tasks.named('buildandrun') {
+tasks.register('buildandrun') {
   dependsOn buildfat
   dependsOn runfat
 }

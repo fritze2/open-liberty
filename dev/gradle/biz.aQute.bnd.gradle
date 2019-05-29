@@ -82,10 +82,12 @@ subprojects {
 
   } else {
     // Create stub tasks for non-bnd projects to use in the next step
-    task publish { }
-    task release { }
-    task releaseNeeded { dependsOn release }
-    task copyPiiFiles { }
+    tasks.register('publish')
+    def release = tasks.register('release')
+    tasks.register('releaseNeeded') {
+      dependsOn release
+    }
+    tasks.register('copyPiiFiles')
   }
   
   // Make the release task depend on assemble and publish so that invoking 'release' or 'releaseNeeded'
@@ -95,6 +97,6 @@ subprojects {
 }
 
 // Ensure the root project has the 'audit' task so it shows up in the output of `./gradlew tasks`
-task audit {
+tasks.register('audit') {
   group = "verification"
 }

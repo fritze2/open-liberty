@@ -16,7 +16,7 @@
  *
  * Configure 'assemble' to depend on above tasks.
  */
-task publishWLPJars(type: Copy) {
+def publishWLPJars = tasks.register('publishWLPJars', Copy.class) {
     dependsOn jar
     def publishWlpJarDefault = parseBoolean(bnd('test.project', 'false')) ? 'true' : 'false'
     enabled bnd('publish.tool.jar', '').empty && !parseBoolean(bnd('publish.wlp.jar.disabled', publishWlpJarDefault))
@@ -60,14 +60,14 @@ task publishWLPJars(type: Copy) {
     }
 }
 
-task publishJavadoc(type: Copy) {
+def publishJavadoc = tasks.register('publishJavadoc', Copy.class) {
     dependsOn zipJavadoc
     from zipJavadoc
     into rootProject.file("build.image/wlp/" + bnd('publish.wlp.jar.suffix', 'lib') + "/javadoc")
     rename '.javadoc.zip', "_${bnd.bVersion}-javadoc.zip"
 }
 
-task publishToolScripts(type: Copy) {
+def publishToolScripts = tasks.register('publishToolScripts', Copy.class) {
     dependsOn jar
     enabled !bnd('publish.tool.script', '').empty
     from cnf.file('resources/bin')
@@ -81,7 +81,7 @@ task publishToolScripts(type: Copy) {
                      TOOL_SCRIPT_RELATIVE: bnd('publish.tool.script.relative', '')])
 }
 
-task publishToolJars(type: Copy) {
+def publishToolJars = tasks.register('publishToolJars', Copy.class) {
     dependsOn jar
     dependsOn publishToolScripts
     enabled !bnd('publish.tool.jar', '').empty
@@ -90,13 +90,13 @@ task publishToolJars(type: Copy) {
     include bnd('publish.tool.jar', '')
 }
 
-task publishSchemaResources(type: Copy) {
+def publishSchemaResources = tasks.register('publishSchemaResources', Copy.class) {
     dependsOn jar
     from project.file('resources/schemas')
     into buildImage.file('wlp/dev/api/ibm/schema')
 }
 
-task publishPlatformManifests(type: Copy) {
+def publishPlatformManifests = tasks.register('publishPlatformManifests', Copy.class) {
     dependsOn jar
     from project.file('publish/platform')
     into buildImage.file('wlp/lib/platform')
@@ -105,7 +105,7 @@ task publishPlatformManifests(type: Copy) {
             append: file(cnf.file('resources/IBM-ProductID.txt')))
 }
 
-task publishPlatformFiles(type: Copy) {
+def publishPlatformFiles = tasks.register('publishPlatformFiles', Copy.class) {
     dependsOn jar
     dependsOn publishPlatformManifests
     from project.file('publish/platform')
@@ -113,33 +113,33 @@ task publishPlatformFiles(type: Copy) {
     exclude '*.mf'
 }
 
-task publishTemplates(type: Copy) {
+def publishTemplates = tasks.register('publishTemplates', Copy.class) {
     dependsOn jar
     from project.file('publish/templates')
     into buildImage.file('wlp/templates')
 }
 
-task publishBinScripts(type: Copy) {
+def publishBinScripts = tasks.register('publishBinScripts', Copy.class) {
     dependsOn jar
     from project.file('publish/bin')
     into buildImage.file('wlp/bin')
     fileMode 0755
 }
 
-task publishClientScripts(type: Copy) {
+def publishClientScripts = tasks.register('publishClientScripts', Copy.class) {
     dependsOn jar
     enabled parseBoolean(bnd('publish.wlp.clients', 'true'))
     from project.file('publish/clients')
     into buildImage.file('wlp/clients')
 }
 
-task publishLibNative(type: Copy) {
+def publishLibNative = tasks.register('publishLibNative', Copy.class) {
     dependsOn jar
     from project.file('lib/native')
     into buildImage.file('wlp/lib/native')
 }
 
-assemble {
+tasks.named('assemble') {
     dependsOn publishWLPJars
     dependsOn publishJavadoc
     dependsOn publishToolJars
