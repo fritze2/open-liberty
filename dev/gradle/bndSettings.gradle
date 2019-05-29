@@ -71,6 +71,9 @@ buildscript {
     }
 }
 
+def startTime = System.currentTimeMillis()
+println "duration = " + (System.currentTimeMillis() - startTime)
+
 /**
  * Initialize the bnd workspace
  */
@@ -113,6 +116,7 @@ if ((startParameter.currentDir != rootDir) || projectNames.empty) {
 
 // If bnd_build used but declared empty, add all non-private folders of rootDir
 def addAll = projectNames.remove('')
+println "addAll " + addAll
 if (addAll) {
     println 'Preparing all bnd projects in the workspace (this can take a while)'
 }
@@ -128,43 +132,162 @@ def includeModuleIfExists(projectName) {
     }
 }
 
-def allBndProjects = workspace.getAllProjects().collect { project ->
-    if (!project.name.startsWith('.')) {
-        if (addAll) {
-            project.prepare()
-            include project.name
+startTime = System.currentTimeMillis()
+// Avoid doing this except when building cnf, build.image, or all projects.
+def allBndProjects
+if (addAll || projectNames.contains("cnf") || projectNames.contains("build.image")) {
+    allBndProjects = workspace.getAllProjects().collect { project ->
+        if (!project.name.startsWith('.')) {
+            if (addAll) {
+                project.prepare()
+                include project.name
 
-            if (new File(rootDir, project.name + '/springboot.gradle').exists()) {
-                includeModuleIfExists(project.name)
+                if (new File(rootDir, project.name + '/springboot.gradle').exists()) {
+                    includeModuleIfExists(project.name)
+                }
             }
-
+            return project.name
+        } else {
+            return ''
         }
-        return project.name
-    } else {
-        return ''
+    }.toSet()
+    allBndProjects.remove('')
+    if (addAll) {
+        println 'All bnd projects in the workspace have been prepared'
     }
-}.toSet()
-allBndProjects.remove('')
-if (addAll) {
-    println 'All bnd projects in the workspace have been prepared'
 }
+println "allBndProjects = " + (System.currentTimeMillis() - startTime)
 
 // Add our common build/tool projects
 projectNames.add('build.image')
 projectNames.add('wlp-bndPlugins')
 projectNames.add('wlp-rasInstrumentation')
 
-// Add each project and its dependencies to the graph
-projectNames.each { projectName ->
-    if (allBndProjects.contains(projectName)) {
-        include projectName
-        workspace.getProject(projectName).getDependson()*.getName().each {
-            include it
+List populateProjectDeps(Properties bndProps) {
+    List dependents = new LinkedList()
+    String path = bndProps.get('-buildpath')
+    if (path != null)
+        dependents.addAll(populateProjectDeps(path, dependents))
+    path = bndProps.get('-dependson')
+    if (path != null)
+        dependents.addAll(populateProjectDeps(path, dependents))
+    return dependents
+}
+
+List populateProjectDeps(String path, List dependents) {
+    path = path.replaceAll('"[^"]*"', '#')
+    path.split(',').each { pathElem ->
+        if ((pathElem.indexOf('version=file') == -1) && (pathElem.indexOf(':') == -1))
+            dependents.add(pathElem.replaceAll(';.*', '').trim())
+    }
+    return dependents
+}
+
+startTime = System.currentTimeMillis()
+def projectToSymbolicName = [:]
+def symbolicNameToProject = [:]
+settingsDir.traverse(type: groovy.io.FileType.FILES) { bndFile ->
+    if (bndFile.name.endsWith('.bnd')) {
+        def bndProps = new Properties()
+        bndFile.withInputStream { bndProps.load(it) }
+        File bndOverridesFile = new File(bndFile.getParentFile(), "bnd.overrides")
+        if ("bnd.bnd".equals(bndFile.name) && bndOverridesFile.exists()) {
+            Properties bndOverrides = new Properties()
+            bndOverridesFile.withInputStream { bndOverrides.load(it) }
+            bndProps.putAll(bndOverrides)
         }
 
-        if (new File(rootDir, projectName + '/springboot.gradle').exists()) {
-            includeModuleIfExists(projectName)
+        if (bndProps.get('Bundle-SymbolicName') != null) {
+            String name = bndProps.get('Bundle-SymbolicName').replaceAll(';.*', '').trim()
+            projectToSymbolicName.put(bndFile.getParentFile().getName(), name)
+            symbolicNameToProject.put(name, bndFile.getParentFile().getName())
+        } else {
+            String name = bndFile.getParentFile().getName()
+            projectToSymbolicName.put(bndFile.getParentFile().getName(), name)
+            symbolicNameToProject.put(name, bndFile.getParentFile().getName())
         }
+    }
+}
+println "settingsDir.traverse = " + (System.currentTimeMillis() - startTime)
+
+def getProjectFromSymbolicName(String bsn) {
+    return symbolicNameToProject.get(bsn)
+}
+
+def getBsnDependencies(String project, Map symbolicNameToProject, Set projectsTraversed) {
+    Set<String> bsnDependencies = new HashSet<String>()
+    new File(settingsDir, project).traverse(type: groovy.io.FileType.FILES) { bndFile ->
+        def dependencies = []
+        if(bndFile.name.endsWith('.bnd')) {
+            def bndProps = new Properties()
+            bndFile.withInputStream { bndProps.load(it) }
+            File bndOverridesFile = new File(bndFile.getParentFile(), "bnd.overrides")
+            if ("bnd.bnd".equals(bndFile.name) && bndOverridesFile.exists()) {
+                Properties bndOverrides = new Properties()
+                bndOverridesFile.withInputStream { bndOverrides.load(it) }
+                bndProps.putAll(bndOverrides)
+            }
+            dependencies = populateProjectDeps(bndProps)
+            bsnDependencies.addAll(dependencies)
+            projectsTraversed.add(project)
+        }
+
+        dependencies.each { bsn ->
+            // If a project for this bsn exists,
+            if (symbolicNameToProject.get(bsn) != null) {
+                // And we haven't already included it's dependencies
+                if (!projectsTraversed.contains(symbolicNameToProject.get(bsn))) {
+                    bsnDependencies.addAll(getBsnDependencies(symbolicNameToProject.get(bsn), symbolicNameToProject, projectsTraversed))
+                }
+            }
+        }
+    }
+    return bsnDependencies
+}
+
+def getProjectDependencies(String project, Map symbolicNameToProject) {
+    def projectDependencies = []
+    getBsnDependencies(project, symbolicNameToProject, new HashSet<String>()).each {
+        if (symbolicNameToProject.get(it) != null) {
+            projectDependencies.add(symbolicNameToProject.get(it))
+        }
+    }
+    return projectDependencies
+}
+
+// Add each project and its dependencies to the graph
+projectNames.each { projectName ->
+    include projectName
+
+    //if (allBndProjects != null) {
+        startTime = System.currentTimeMillis()
+        workspace.getProject(projectName).getDependson()*.getName().each {
+            println it
+            include it
+        }
+        println "getProject = " + (System.currentTimeMillis() - startTime)
+
+    /*} else {
+        startTime = System.currentTimeMillis()
+        getProjectDependencies(projectName, symbolicNameToProject).each {
+            println it
+            include it
+        }
+        println "getProjectDependencies = " + (System.currentTimeMillis() - startTime)
+    }*/
+
+    /*
+        Set<String> before = new HashSet<String>()
+        before.addAll(getProjectDependencies(projectName, symbolicNameToProject))
+
+        Set<String> after = new HashSet<String>()
+        after.addAll(workspace.getProject(projectName).getDependson()*.getName())
+
+        println "compare " + before.equals(after)
+     */
+
+    if (new File(rootDir, projectName + '/springboot.gradle').exists()) {
+        includeModuleIfExists(projectName)
     }
 }
 
@@ -175,6 +298,8 @@ private boolean parseBoolean(String value) {
 // Pass workspace to root project
 gradle.projectsLoaded { gradle ->
     gradle.rootProject.ext.bndWorkspace = workspace
-    gradle.rootProject.ext.gradleBndProjects = allBndProjects
+    if (allBndProjects != null) {
+        gradle.rootProject.ext.gradleBndProjects = allBndProjects
+    }
     gradle.rootProject.ext.parseBoolean = { value -> parseBoolean(value) }
 }
