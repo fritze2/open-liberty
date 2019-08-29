@@ -17,7 +17,6 @@ Bundle-Description: WAS Security Public APIs, version ${bVersion}
 
 WS-TraceGroup: \
   security
-  
 
 Export-Package: \
   com.ibm.websphere.security, \
