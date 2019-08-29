@@ -23,7 +23,6 @@
   Bnd-LastModified, Tool, \
   TODAY, DSTAMP, TSTAMP, Bnd-LastModified
 
-
 # Set some common manifest headers we want to set in client JARs
 # (similar to cnf/resources/bnd/bundle.props)
 
