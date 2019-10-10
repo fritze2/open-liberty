@@ -8,6 +8,18 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
+/**
+ * Apply Gradle Build Scan plugin.
+ * See: https://docs.gradle.com/build-scan-plugin/
+ */
+/*
+apply plugin: com.gradle.scan.plugin.BuildScanPlugin
+
+buildScan {
+  termsOfServiceUrl   = 'https://gradle.com/terms-of-service'
+  termsOfServiceAgree = 'yes'
+}
+*/
 
 /**
  * Configure extra project properties.

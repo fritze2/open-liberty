@@ -28,7 +28,7 @@ buildscript {
      */
     repositories {
         if ('true'.equalsIgnoreCase(gradle.userProps.getProperty('is.using.artifactory'))) {
-            maven {
+	    maven {
                 credentials {
                     username gradle.userProps.getProperty("artifactory.download.user")
                     password gradle.userProps.getProperty("artifactory.download.token")
@@ -44,7 +44,7 @@ buildscript {
     dependencies {
         classpath bnd_plugin
         classpath 'gradle.plugin.net.ossindex:ossindex-gradle-plugin:0.4.11'
-        classpath 'com.gradle:build-scan-plugin:2.1'
+        classpath 'com.gradle:build-scan-plugin:+'
     }
 
     // Since the files in the repository change with each build, we need to recheck for changes
