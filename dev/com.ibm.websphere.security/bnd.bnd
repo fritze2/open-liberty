@@ -33,6 +33,10 @@ Export-Package: \
   com.ibm.wsspi.security.audit, \
   com.ibm.wsspi.security.registry.*; provide:=true
 
+Import-Package: \
+  !com.ibm.wsspi.security.registry, \
+  ${defaultPackageImport}
+
 Service-Component: \
   wsSubjectService; \
     implementation:=com.ibm.websphere.security.auth.WSSubject; \
