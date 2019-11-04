@@ -19,6 +19,7 @@ Bundle-SymbolicName: com.ibm.ws.microprofile.metrics.cdi
 Bundle-Description: MicroProfile Metrics CDI Integration, version ${bVersion}
 
 Import-Package: \
+    !io.astefanutti.metrics.cdi, \
 	javax.enterprise.*;version="[1.1,3)",\
 	*
 
