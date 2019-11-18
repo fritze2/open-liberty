@@ -35,6 +35,8 @@ Include-Resource: \
   com.ibm.ws.jbatch.cdi.BatchCDIInjectionExtension,\
   com.ibm.ws.jbatch.cdi.internal.CDIBatchArtifactFactoryImpl
 
+-cdiannotations:
+
 -buildpath: \
 	com.ibm.websphere.appserver.spi.logging;version=latest,\
 	com.ibm.websphere.javaee.batch.1.0,\

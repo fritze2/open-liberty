@@ -38,6 +38,8 @@ Import-Package: \
 Private-Package: \
     com.ibm.ws.security.javaeesec.cdi.internal.resources
 
+-cdiannotations:
+
 -dsannotations: \
     com.ibm.ws.security.javaeesec.cdi.extensions.JavaEESecCDIExtension,\
     com.ibm.ws.security.javaeesec.cdi.extensions.SecurityContextHelper,\

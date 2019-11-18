@@ -20,7 +20,6 @@ Require-Capability: osgi.ee; filter:="(&(osgi.ee=JavaSE)(version=1.8))"
 
 #Web-ContextPath: /ibm/api/social-login
 
-
 WS-TraceGroup: \
   MPJWT
 
@@ -36,7 +35,6 @@ Export-Package: \
    com.ibm.ws.security.mp.jwt.error, \
    com.ibm.ws.security.mp.jwt.tai
 
-
 Import-Package: \
    javax.servlet;version="!", \
    javax.servlet.*;version="!", \
@@ -50,15 +48,13 @@ Private-Package: \
     com.ibm.ws.security.mp.jwt.tai, \
     com.ibm.ws.security.mp.jwt.config, \
     com.ibm.ws.security.mp.jwt.resources.*,
-    
+
 -dsannotations: com.ibm.ws.security.mp.jwt.impl.MicroProfileJwtConfigImpl, \
 	com.ibm.ws.security.mp.jwt.impl.utils.JsonWebTokenUtilImpl, \
         com.ibm.ws.security.mp.jwt.impl.MicroProfileJwtServiceImpl, \
 	com.ibm.ws.security.mp.jwt.tai.MicroProfileJwtTAI
 
-
 -dsannotations-inherit = true
-
 
 Include-Resource: \
     OSGI-INF=resources/OSGI-INF

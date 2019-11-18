@@ -20,6 +20,8 @@ Bundle-Description: MicroProfile.OpenTracing, version 1.1
 
 WS-TraceGroup: OPENTRACING
 
+-cdiannotations:
+
 -dsannotations: \
     com.ibm.ws.microprofile.opentracing.OpenTracingFilterHelper, \
     com.ibm.ws.microprofile.opentracing.cdi.OpenTracingCDIInjectionExtension

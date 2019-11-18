@@ -26,6 +26,8 @@ Include-Resource: \
 
 WS-TraceGroup: MPJWT
 
+-cdiannotations:
+
 -dsannotations-inherit: true
 -dsannotations: com.ibm.ws.security.mp.jwt.cdi.JwtCDIExtension
 

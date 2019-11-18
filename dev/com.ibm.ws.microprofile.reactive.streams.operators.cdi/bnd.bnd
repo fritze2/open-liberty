@@ -39,6 +39,8 @@ Include-Resource: \
 
 WS-TraceGroup: REACTIVESTREAMS
 
+-cdiannotations:
+
 -dsannotations-inherit: true
 -dsannotations: com.ibm.ws.microprofile.reactive.streams.cdi.ReactiveStreamsEngineInjectionExtension
 
