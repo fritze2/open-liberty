@@ -392,6 +392,7 @@ task zipProjectFVT(type: Zip) {
 }
 
 if (isAutomatedBuild || rootProject.projectNames.contains(project.name)) {
+  publish.dependsOn zipProjectFVT
   publishing {
     publications {
       maven(MavenPublication) {
