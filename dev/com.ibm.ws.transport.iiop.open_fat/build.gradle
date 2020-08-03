@@ -23,7 +23,3 @@ dependencies {
   compile 'dev:com.ibm.ws.org.apache.yoko.osgi.1.5:1.+'
 }
 
-task xxx {
-  print "### requiredLibs = $configurations.requiredLibs.asPath ###"
-}
-
