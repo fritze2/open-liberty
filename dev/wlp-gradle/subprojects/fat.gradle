@@ -12,6 +12,23 @@
 /**
  * Configure 'buildfat', 'runfat', 'buildandrun', and 'cleanFat' tasks on FAT projects.
  */
+
+// Building a FAT is disabled by default, and enabled only when the gradle command contains "fat" or
+// is an automated build running in the CI server.
+// For example './gradlew buildfat' (to build all FATs) or './gradlew build.example_fat:buildandrun'
+def buildFatEnabled = false;
+if (isAutomatedBuild) {
+  buildFatEnabled = true;
+} else if (gradle.startParameter.getCurrentDir().getAbsolutePath().contains("_fat")) {
+  buildFatEnabled = true;
+} else {
+  gradle.startParameter.taskNames.each {
+    if(it.contains("fat")) {
+      buildFatEnabled = true;
+    }
+  }
+}
+
 // Global vars
 ext.autoFvtDir = new File(project.buildDir, 'autoFVT')
 
@@ -457,19 +474,6 @@ task runfat(type: Exec) {
     // 'is.running.remote.build' so we don't fail the entire build whenever a testcase fails
     if(new File(autoFvtDir, "output/fail.log").exists())
       throw new GradleException("The FAT bucket has test failures! See the logs and results for details.")
-  }
-}
-
-// Building a FAT is disabled by default, and enabled only when the gradle command contains "fat"
-// For example './gradlew buildfat' (to build all FATs) or './gradlew build.example_fat:buildandrun'
-def buildFatEnabled = false;
-if(gradle.startParameter.getCurrentDir().getAbsolutePath().contains("_fat")) {
-  buildFatEnabled = true;
-} else {
-  gradle.startParameter.taskNames.each {
-    if(it.contains("fat")) {
-      buildFatEnabled = true;
-    }
   }
 }
 
