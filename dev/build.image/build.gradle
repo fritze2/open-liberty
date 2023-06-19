@@ -49,7 +49,6 @@ task copyPropertiesToBuildImage (type:Copy) {
 }
 
 task addServiceFingerprint() {
-
     // Create a File object representing the folder
     def folder = new File( "$projectDir/wlp/lib/versions" )
 
@@ -124,6 +123,50 @@ task publishTemplates (type:Copy) {
     into project.file('wlp/templates')
 }
 
+/*
+File dependenciesFile = new File(project.buildDir, 'dependencies.gradle')
+def createWLPBootstrap() {
+    def depsList = []
+    gradleBndProjects.each { projectName ->
+        def bndProject = bndWorkspace.getProject(projectName)
+        if (!bndProject.isNoBundles() && !bnd.is('fat.project') && !bnd.is('test.project')) {
+            String org = 'dev'
+            for (String bsn : bndProject.getBsns()) {
+                depsList.add('    wlp(\'' + org + ':' + bsn + ':latest.integration@zip\') { transitive = false }')
+            }
+        }
+    }
+
+    dependenciesFile.createNewFile()
+    def deps = ""
+    def sortedDeps = depsList.sort()
+    for(def i=0;i<sortedDeps.size;i++){
+        deps+=sortedDeps.get(i)+"\n"
+        if(i%100==0){
+        deps+="}\ndependencies {"
+        }
+    }
+    dependenciesFile.text = """dependencies {
+        ${deps}
+    }"""
+}
+createWLPBootstrap()
+
+configurations {
+    wlp
+}
+
+apply from: dependenciesFile
+
+configurations.wlp.eachWithIndex { it, i ->
+    tasks.register('publishProjectWLP'+i, Copy) {
+        //dependsOn parent.subprojects.minus(project).minus(cnf).release
+        from zipTree(it)
+        into project.file('wlp')
+    }
+    assemble.dependsOn 'publishProjectWLP'+i
+}*/
+
 assemble { 
     dependsOn publishTemplates
     dependsOn copyPropertiesToBuildImage
@@ -134,7 +177,6 @@ assemble {
     dependsOn copySwidTagToBuildImage
     dependsOn copySwidFixpackTagToBuildImage
 }
-
 
 def failOnError = false
 
@@ -153,10 +195,9 @@ task updatePoms {
     def inputDir = project.file('wlp')
     def tmpDir = new File(project.buildDir, 'pomsTmp')
 
-
-    doLast {      
+    doLast {
             def myArgs = [
-              inputDir, tmpDir, failOnError]                 
+              inputDir, tmpDir, failOnError]
             javaexec {
                 classpath configurations.updatePomClasspath
                 main = updateClassName
@@ -363,6 +404,7 @@ def getFeaturePath(feature, suffix) {
     }
     file
 }
+
 def removeFeature(feature) {
     def file = getFeaturePath(feature)
     def bakfile = new File(file.getPath()+".bak")
@@ -763,9 +805,8 @@ if (isAutomatedBuild && !isIFIXBuild) {
           generateZipChecksums(ant)
           ant.calcZipChecksums(installRoot:"${distsDirectory}") {}
         }
-    }   
+    }
     publish.dependsOn genZipChecksums
-
 }
 
 clean.doLast {
@@ -893,7 +934,7 @@ if (isAutomatedBuild && !isIFIXBuild) {
         }
 
         task buildOsNativePackages(type: Exec) {
-	        description 'builds OS Native packages'
+            description 'builds OS Native packages'
 
             dependsOn copyOpenLiberty
             dependsOn updateRulesTemplate
