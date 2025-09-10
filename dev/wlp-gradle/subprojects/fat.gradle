@@ -400,87 +400,88 @@ task customizeAutoFVT {
   // no-op task that allows buckets to override behavior of default autoFVT task
 }
 
-task zipAutoFVT {
-  dependsOn customizeAutoFVT
-  doLast {
-    boolean subBundles = (!bnd.get('-sub', '').empty)
-    boolean hasMultipleSuites = false
-    def fatProperties = new HashMap<String, Properties>();
-    def suiteJarNames = new HashSet<String>()
-    def suiteNames = new HashSet<String>()
-    if (subBundles) {
-      fileTree(dir: projectDir, include: bnd.get('-sub', '')).each { subBndFile ->
+boolean subBundles = (!bnd.get('-sub', '').empty)
+boolean hasMultipleSuites = false
+def fatProperties = new HashMap<String, Properties>();
+def suiteJarNames = new HashSet<String>()
+def suiteNames = new HashSet<String>()
+if (subBundles) {
+    fileTree(dir: projectDir, include: bnd.get('-sub', '')).each { subBndFile ->
         Properties subBndProperties = new Properties()
         subBndFile.withInputStream { subBndProperties.load(it) }
         def suiteName = subBndProperties.getProperty("suite.name")
         if (suiteName != null) {
-          hasMultipleSuites = true
+            hasMultipleSuites = true
 
-          def suiteProperties = new Properties()
-          suiteProperties.setProperty("autoFVT.zipName", "${distsDirectory}/autoFVT__${suiteName}.zip")
-          def bsn = subBndProperties.getProperty("Bundle-Symbolic-Name")
-          if (bsn == null) {
+            def suiteProperties = new Properties()
+            suiteProperties.setProperty("autoFVT.zipName", "${distsDirectory}/autoFVT__${suiteName}.zip")
+            def bsn = subBndProperties.getProperty("Bundle-Symbolic-Name")
+            if (bsn == null) {
             def bndFileName = subBndFile.getName()
             def subBundleSuffix = bndFileName.substring(0, bndFileName.lastIndexOf('.'))
             bsn = project.name + "." + subBundleSuffix
-          }
-          def jarName = bsn + ".jar"
-          suiteProperties.setProperty("suite.jarName", jarName)
-          fatProperties.put(suiteName, suiteProperties)
+            }
+            def jarName = bsn + ".jar"
+            suiteProperties.setProperty("suite.jarName", jarName)
+            fatProperties.put(suiteName, suiteProperties)
 
-          suiteJarNames.add(jarName)
-          suiteNames.add(suiteName)
+            suiteJarNames.add(jarName)
+            suiteNames.add(suiteName)
         }
-      }
     }
-    if (!hasMultipleSuites) {
-      ant.zip(destfile: "${distsDirectory}/autoFVT.zip") {
-        mappedresources {
-          fileset(dir: "${autoFvtDir}", includes: "**")
-          globmapper(from: "*", to: "autoFVT/*")
-        }
-      }
-    } else {
-      fatProperties.each { suiteName, suiteProps ->
-        def zipName = suiteProps.get("autoFVT.zipName")
-        def suiteJarName = suiteProps.get("suite.jarName")
-        def filesToExclude = ''
-        boolean first = true;
-        suiteJarNames.each { jarName ->
-          if (!suiteJarName.equals(jarName)) {
-            if (first) {
-              first = false
-            } else {
-              filesToExclude += ', '
-            }
-            filesToExclude += ('build/lib/' + jarName)
-          }
-        }
-        def suiteFatMetadata = new File(autoFvtDir, "${suiteName}-fat-metadata.json")
-        if (suiteFatMetadata.exists()) {
-          if (first) {
-            first = false
-          } else {
-            filesToExclude += ', '
-          }
-          filesToExclude += 'fat-metadata.json'
-          suiteNames.each { checkSuiteName ->
-            if (!suiteName.equals(checkSuiteName)) {
-              filesToExclude += (', ' + checkSuiteName + '-fat-metadata.json')
-            }
-          }
-        }
+}
 
-        ant.zip(destfile: "${zipName}") {
-          mappedresources {
-            fileset(dir: "${autoFvtDir}", excludes: "${filesToExclude}")
-            firstmatchmapper {
-              globmapper(from: "${suiteName}-fat-metadata.json", to: "autoFVT/fat-metadata.json")
-              globmapper(from: "*", to: "autoFVT/*")
+task zipAutoFVT {
+  dependsOn customizeAutoFVT
+  doLast {
+    if (!hasMultipleSuites) {
+        ant.zip(destfile: "${distsDirectory}/autoFVT.zip") {
+            mappedresources {
+                fileset(dir: "${autoFvtDir}", includes: "**")
+                globmapper(from: "*", to: "autoFVT/*")
             }
-          }
         }
-      }
+    } else {
+        fatProperties.each { suiteName, suiteProps ->
+            def zipName = suiteProps.get("autoFVT.zipName")
+            def suiteJarName = suiteProps.get("suite.jarName")
+            def filesToExclude = ''
+            boolean first = true;
+            suiteJarNames.each { jarName ->
+                if (!suiteJarName.equals(jarName)) {
+                    if (first) {
+                        first = false
+                    } else {
+                        filesToExclude += ', '
+                    }
+                    filesToExclude += ('build/lib/' + jarName)
+                }
+            }
+            def suiteFatMetadata = new File(autoFvtDir, "${suiteName}-fat-metadata.json")
+            if (suiteFatMetadata.exists()) {
+                if (first) {
+                    first = false
+                } else {
+                    filesToExclude += ', '
+                }
+                filesToExclude += 'fat-metadata.json'
+                suiteNames.each { checkSuiteName ->
+                    if (!suiteName.equals(checkSuiteName)) {
+                        filesToExclude += (', ' + checkSuiteName + '-fat-metadata.json')
+                    }
+                }
+            }
+
+            ant.zip(destfile: "${zipName}") {
+                mappedresources {
+                fileset(dir: "${autoFvtDir}", excludes: "${filesToExclude}")
+                    firstmatchmapper {
+                        globmapper(from: "${suiteName}-fat-metadata.json", to: "autoFVT/fat-metadata.json")
+                        globmapper(from: "*", to: "autoFVT/*")
+                    }
+                }
+            }
+        }
     }
   }
 }
@@ -508,28 +509,35 @@ task zipProjectFVT {
   }
 }
 
-// If doing assemble, we don't create the autoFVT zip files or the build/libs/distributions directory
-if (distsDirectory.exists()) {
-  publish.dependsOn zipProjectFVT
-
-  if (isAutomatedBuild || rootProject.projectNames.contains(project.name)) {
-    publishing {
-      publications {
-        distsDirectory.eachFile {
-          File archive = it
-          String fileName = archive.name
-          if (fileName.startsWith(project.name)) {
-            "autoFVT-${fileName}" (MavenPublication) {
-              artifactId "${fileName}_autoFVT"
-              groupId 'test'
-              version project.version
-              artifact(archive)
-            }
-          }
-        }
-      }
+if (isAutomatedBuild || rootProject.projectNames.contains(project.name)) {
+    import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+    tasks.withType(PublishToMavenRepository).configureEach {
+        mustRunAfter tasks.named("zipProjectFVT")
     }
-  }
+    publish.dependsOn zipProjectFVT
+
+    publishing {
+        publications {
+            if (!hasMultipleSuites) {
+                "autoFVT-${project.name}" (MavenPublication) {
+                    artifactId "${project.name}_autoFVT"
+                    groupId 'test'
+                    version project.version
+                    artifact("${distsDirectory}/autoFVT.zip")
+                }
+            } else {
+                fatProperties.each { suiteName, suiteProps ->
+                    def zipName = suiteProps.get("autoFVT.zipName")
+                    "autoFVT-${zipName}" (MavenPublication) {
+                        artifactId "${zipName}_autoFVT"
+                        groupId 'test'
+                        version project.version
+                        artifact("${distsDirectory}/${zipName}")
+                    }
+                }
+            }
+        }
+    }
 }
 
 task trySkipFat(type: JavaExec) {
